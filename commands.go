@@ -5,6 +5,7 @@ import (
 	"github.com/codegangsta/cli"
 	"log"
 	"os"
+	"strings"
 )
 
 // Commands is a command set of docker-assembler.
@@ -17,9 +18,6 @@ var Commands = []cli.Command{
 var commandCreate = cli.Command{
 	Name:  "create",
 	Usage: "Setup docker assembler project.",
-	Flags: []cli.Flag{
-		cli.StringFlag{"s", "sub1,sub2,...", "Sub Docker directory."},
-	},
 	Description: `
 `,
 	Action: doCreate,
@@ -59,18 +57,43 @@ func doCreate(c *cli.Context) {
 		return
 	}
 	name := c.Args()[0]
-	fmt.Println("Created: " + name)
-	for _, sub := range c.Args()[1:] {
-		addSubDockerfile(sub, name)
+	err := os.Mkdir(name, 0755)
+	if err != nil {
+		log.Fatal(err)
 	}
+	os.Chdir(name)
+	err = CreateConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Created: " + name)
 }
 
 func doAdd(c *cli.Context) {
+	for _, sub := range c.Args() {
+		addSubDockerfile(sub)
+	}
 }
 
-func addSubDockerfile(name, basename string) {
-	fmt.Println("Created: " + basename + "/" + name)
+func addSubDockerfile(name string) {
+	config := OpenConfig()
+	sub := SubDockerfile{Name: name, Config: config}
+	err := sub.Create()
+	if err != nil {
+		fmt.Println("Added: " + name)
+	}
 }
 
 func doBuild(c *cli.Context) {
+	config := OpenConfig()
+	builder := Builder{Config: config, SubDockerfiles: []*SubDockerfile{}}
+	imageName := c.Args()[0]
+	log.Println("ImageName: ", imageName)
+	log.Println("Build ", strings.Join(c.Args()[1:], " -> "))
+	for _, name := range c.Args()[1:] {
+		sub := SubDockerfile{Name: name, Config: config}
+		builder.SubDockerfiles = append(builder.SubDockerfiles, &sub)
+	}
+	builder.BuildImage(imageName)
+	log.Println("Completed.")
 }
