@@ -1,0 +1,6 @@
+{
+    "Project": "example",
+    "RootImage": "ubuntu:12.04",
+    "Maintainer": "info@yuki-matsumoto.com",
+    "DockerHost": "tcp://localhost:4243"
+}
